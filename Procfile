@@ -1,1 +1,1 @@
-web: gunicorn treasuryproject.wsgi
+web: gunicorn ttb_label_verification.wsgi
