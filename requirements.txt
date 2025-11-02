@@ -5,6 +5,7 @@ beautifulsoup4==4.14.2
 cachetools==6.2.1
 certifi==2025.10.5
 charset-normalizer==3.4.4
+dj-database-url==3.0.1
 Django==5.2.7
 google==3.0.0
 google-ai-generativelanguage==0.6.15
@@ -44,3 +45,4 @@ typing_extensions==4.15.0
 uritemplate==4.2.0
 urllib3==2.5.0
 websockets==15.0.1
+whitenoise==6.11.0
