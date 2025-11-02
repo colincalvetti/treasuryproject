@@ -1,1 +1,1 @@
-web: gunicorn 'treasury project'.wsgi
+web: gunicorn 'treasuryproject'.wsgi
