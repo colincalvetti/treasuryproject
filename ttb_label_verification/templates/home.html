@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TTB Verification</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" 
+        href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" height="64" width="64"><text y="50%" x="50%" font-size="50" text-anchor="middle" dominant-baseline="central">🍺</text></svg>'>
+</head>
+<body>
+    {% if ttb %}
+        <br>
+        <div id="verification_status" style="margin:0px 10px 0px 10px;display:flex;justify-content:center;align-items:center;font-size:36px;">verifying...</div>
+        <br>
+        <div class="container">
+            <div class="row" id="ttbrow">
+                <div id="ttbcol" class="col-6" style="display:flex;flex-direction:column;justify-content:center;align-items:center;">
+                    <p>{{ ttb.brand }}</p>
+                    <p>{{ ttb.alcohol_type }}</p>
+                    <p>{{ ttb.abv }}</p>
+                    <p>{{ ttb.volume }} {{ ttb.v_units }}</p>
+                    {% if ttb.origin|lower != "usa" %}
+                    <p>{{ ttb.origin }}</p>
+                    {% endif %}
+                    <p>{{ ttb.bottler }} {{ ttb.bottler_address }}</p>
+                    {% if ttb.age %}
+                    <p>{{ ttb.age }}</p>
+                    {% endif %}
+                    <p>{{ ttb.health_warnings }}</p>
+                </div>
+                <div id="imgcol" class="col-6" style="display:flex;justify-content:center;align-items:center;">
+                    <img src="{{ image }}" style="max-width:100%;">
+                </div>
+            </div>
+        </div>
+        <form method="POST" id="editform" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="verification_status" id="hidden_verification_status" value="">
+            <input type="hidden" name="image" value="{{ image }}">
+            <input type="hidden" name="brand" value="{{ ttb.brand }}">
+            <input type="hidden" name="alcohol_type" value="{{ ttb.alcohol_type }}">
+            <input type="hidden" name="abv" value="{{ ttb.abv }}">
+            <input type="hidden" name="volume" value="{{ ttb.volume }}">
+            <input type="hidden" name="v_units" value="{{ ttb.v_units }}">
+            <input type="hidden" name="origin" value="{{ ttb.origin }}">
+            <input type="hidden" name="bottler" value="{{ ttb.bottler }}">
+            <input type="hidden" name="bottler_address" value="{{ ttb.bottler_address }}">
+            <input type="hidden" name="age" value="{{ ttb.age }}">
+            <input type="hidden" name="health_warnings" value="{{ ttb.health_warnings }}">
+            <br>
+            <div style="display:flex;justify-content:center;align-items:center;">
+                <button type="submit">Edit TTB</button>
+            </div>
+        </form>
+        <br>
+        <div style="display:flex;justify-content:center;align-items:center;">
+            <button onclick="window.location.href='{% url 'home' %}'">New TTB Verification</button>
+        </div>
+        <br>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const form = document.getElementById('editform');
+                form.addEventListener('submit', function() {
+                    let statusDiv = document.getElementById('new_verification_status');
+                    const hiddenInput = document.getElementById('hidden_verification_status');
+                    if (statusDiv == null) {
+                        statusDiv = document.getElementById('verification_status');
+                        if (statusDiv == "Verifying...") {
+                            hiddenInput.value = "Verification was not yet completed";
+                        } else {
+                            hiddenInput.value = "error during verification\ntry again or contact support";
+                        }
+                    } else {
+                        hiddenInput.value = statusDiv.textContent;
+                    }
+                });
+            });
+            const ttbData = {
+                image: "{{ image }}",
+                brand: "{{ ttb.brand }}",
+                alcohol_type: "{{ ttb.alcohol_type }}",
+                abv: "{{ ttb.abv }}",
+                volume: "{{ ttb.volume }}",
+                v_units: "{{ ttb.v_units }}",
+                origin: "{{ ttb.origin }}",
+                bottler: "{{ ttb.bottler }}",
+                bottler_address: "{{ ttb.bottler_address }}",
+                age: "{{ ttb.age }}",
+                distillation_location: "{{ ttb.distillation_location }}",
+                health_warnings: "{{ ttb.health_warnings }}"
+            };
+            document.addEventListener('DOMContentLoaded', async function() {
+                try {
+                    const verification_status = document.getElementById('verification_status');
+                    const response = await fetch("{% url 'ttb_verification' %}", {
+                        method: "POST",
+                        headers: {
+                            "X-CSRFToken": "{{ csrf_token }}",
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(ttbData)
+                    });
+                    const data = await response.json();
+                    document.body.removeChild(verification_status);
+                    document.getElementById('ttbcol').className = "col-4";
+                    document.getElementById('imgcol').className = "col-3";
+                    let new_verification_status = document.createElement('div');
+                    new_verification_status.id = "new_verification_status";
+                    new_verification_status.className = "col-5";
+                    new_verification_status.style.display = "flex";
+                    new_verification_status.style.justifyContent = "center";
+                    new_verification_status.style.alignItems = "center";
+                    new_verification_status.style.color = ((data.ttb_status).toLowerCase().includes("ttb label does not match image")) ? "red" : "green";
+                    new_verification_status.style.whiteSpace = "pre-wrap";
+                    new_verification_status.textContent = data.ttb_status;
+                    if (new_verification_status.textContent.length > 1000) {
+                        new_verification_status.style.fontSize = "12px";
+                    } else if (new_verification_status.textContent.length > 500) {
+                        new_verification_status.style.fontSize = "15px";
+                    } else {
+                        new_verification_status.style.fontSize = "18px";
+                    }
+                    (document.getElementById('ttbrow')).appendChild(new_verification_status);
+                } catch(error) {
+                    const verification_status = document.getElementById('verification_status');
+                    verification_status.style.whiteSpace = "pre-wrap";
+                    verification_status.textContent = "error during verification\ntry again or contact support";
+                    verification_status.style.color = "red";
+                    console.error(error);
+                }
+            });
+        </script>
+    {% else %}
+        <br>
+        {% if edit %}
+        <div class="container">
+            <div class="row">
+                <div class="col-4" style="display:flex;flex-direction:column;justify-content:center;align-items:center;">
+                    <form method="POST" enctype="multipart/form-data" style="display:flex;flex-direction:column;justify-content:center;align-items:center;">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <input type="hidden" name="image" value="{{ image }}">
+                        <button type="submit">Resubmit</button>
+                    </form>
+                </div>
+                <div class="col-3" style="display:flex;justify-content:center;align-items:center;">
+                    <img src="{{ image }}" style="max-width:100%;">
+                </div>
+                <div id="edit_verification_status" class="col-5" style="display:flex;justify-content:center;align-items:center;">
+                    {{ verification_status }}
+                </div>
+            </div>
+        </div>
+        <br>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                let edit_verification_status = document.getElementById('edit_verification_status')
+                edit_verification_status.textContent = edit_verification_status.textContent.trim();
+                if (edit_verification_status.textContent.length > 1000) {
+                    edit_verification_status.style.fontSize = "12px";
+                } else if (edit_verification_status.textContent.length > 500) {
+                    edit_verification_status.style.fontSize = "15px";
+                } else {
+                    edit_verification_status.style.fontSize = "18px";
+                }
+                edit_verification_status.style.color = ((edit_verification_status.textContent).toLowerCase().includes("ttb label does not match image") || (edit_verification_status.textContent).toLowerCase().includes("verification was not yet completed") || (edit_verification_status.textContent).toLowerCase().includes("error during verification")) ? "red" : "green";
+                edit_verification_status.style.whiteSpace = "pre-wrap";
+            });
+        </script>
+        {% else %}
+            <form method="POST" enctype="multipart/form-data" style="display:flex;flex-direction:column;justify-content:center;align-items:center;">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit">Submit</button>
+            </form>
+        {% endif %}
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const alcohol_type = document.getElementById('id_alcohol_type');
+                const age = document.getElementById('id_age').parentElement;
+                function toggleAgeField() {
+                    if (alcohol_type.value === 'Liquor' || alcohol_type.value === 'Wine' || alcohol_type.value === '---------') {
+                        age.style.display = 'block';
+                    } else {
+                        age.style.display = 'none';
+                        document.getElementById('id_age').value = '';
+                    }
+                }
+                alcohol_type.addEventListener('change', toggleAgeField);
+                toggleAgeField();
+            });
+        </script>
+    {% endif %}
+</body>
+</html>
